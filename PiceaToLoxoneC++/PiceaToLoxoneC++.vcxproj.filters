@@ -41,5 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="config.cfg" />
+    <None Include="Makefile" />
   </ItemGroup>
 </Project>
