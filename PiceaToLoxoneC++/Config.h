@@ -12,6 +12,7 @@ public:
     static std::string LoxoneIP;
     static std::string LoxoneUser;
     static std::string LoxonePW;
+	static std::string PiceaID;
     static std::string PiceaIP;
     static std::string PiceaPort;
     static std::string PiceaJWT;

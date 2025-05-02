@@ -7,6 +7,7 @@ const std::string Config::filePath = "config.cfg";
 std::string Config::LoxoneIP = "";
 std::string Config::LoxoneUser = "";
 std::string Config::LoxonePW = "";
+std::string Config::PiceaID = "";
 std::string Config::PiceaIP = "";
 std::string Config::PiceaPort = "";
 std::string Config::PiceaJWT = "";
@@ -165,6 +166,8 @@ bool Config::LoadConfig()
                 LoxoneUser = value;
             else if (key == "LxPW")
                 LoxonePW = value;
+            else if (key == "PiceaID")
+                PiceaID = value;
             else if (key == "PiceaIP")
                 PiceaIP = value;
             else if (key == "PiceaPort")

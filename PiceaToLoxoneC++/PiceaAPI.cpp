@@ -35,7 +35,7 @@ bool PiceaAPI::StartLoop()
 
 bool PiceaAPI::TryToConnect()
 {
-    std::string apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/paired_devices?site_id=";
+    std::string apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/paired_devices?site_id=" + Config::PiceaID;
     CURL* curl = curl_easy_init();
     if (!curl) {
         std::cerr << "Picea > Error initializing cURL." << std::endl;
@@ -112,7 +112,7 @@ bool PiceaAPI::FetchData()
         "solar_output_power_to_extbattery,solar_output_power_to_grid,solar_output_power_to_household,solar_output_power_to_hydrogen,"
         "ventilation_stage_real";
 
-    std::string apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/data/query/" + query + "?site_id=";
+    std::string apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/data/query/" + query + "?site_id=" + Config::PiceaID;
     std::string responseBody;
 
     if (!FetchFromApi(apiUrl, responseBody))
@@ -438,7 +438,7 @@ bool PiceaAPI::FetchData()
 
 
     // Konfiguration abrufen
-    apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/config?site_id=";
+    apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/config?site_id=" + Config::PiceaID;
     responseBody = "";
     if (!FetchFromApi(apiUrl, responseBody))
     {
@@ -664,7 +664,7 @@ bool PiceaAPI::UpdateConfigSettings(const std::string& jsonData)
 {
     if (!isConnected) return false;
 
-    std::string apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/config?site_id=";
+    std::string apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/config?site_id=" + Config::PiceaID;
 
     // Überprüfe, ob apiUrl korrekt formatiert ist
     if (apiUrl.find("https://") != 0 || Config::PiceaIP.empty() || Config::PiceaPort.empty()) {
@@ -684,7 +684,7 @@ bool PiceaAPI::UpdateConfigSettings(const std::string& jsonData)
     if (!headers) {
         std::cerr << "Picea > Error creating headers." << std::endl;
         curl_easy_cleanup(curl);
-        return false;
+        return false; 
     }
     headers = curl_slist_append(headers, "Content-Type: application/json");
     if (!headers) {

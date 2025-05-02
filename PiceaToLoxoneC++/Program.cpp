@@ -59,6 +59,12 @@ void TerminateHandler() {
 int main() {
     std::set_terminate(TerminateHandler);
 
+    std::cout << "PiceaToLoxoneC++ - Version 1.1" << std::endl << std::flush;
+	std::cout << "Entwickelt von: Jens M" << std::endl;
+	std::cout << "Copyright (c) 2023" << std::endl;
+	std::cout << "----------------------------------------" << std::endl;
+	std::cout << "Starte Anwendung..." << std::endl;
+	std::cout << "----------------------------------------" << std::endl;
     try {
         // Konfigurationsdatei laden
         if (!Config::LoadConfig()) {
@@ -75,13 +81,20 @@ int main() {
             PiceaAPI::StartLoop();
             });
 
-        std::thread loxoneThread([&loxoneAPI]() {
-            loxoneAPI.StartMonitoringLoxone();
+		//// Starte den Loxone-Monitoring-Thread (OLD)
+  //      std::thread loxoneThread([&loxoneAPI]() {
+  //          loxoneAPI.StartMonitoringLoxone();
+  //          });
+
+        // Starte den HTTP-Server für Loxone Push
+        std::thread httpServerThread([&loxoneAPI]() {
+            loxoneAPI.StartHttpServer(); // HTTP-Server starten
             });
 
         // Warten, bis beide Threads enden (die Loops laufen normalerweise endlos)
         piceaThread.join();
-        loxoneThread.join();
+        //loxoneThread.join(); // OLD
+        httpServerThread.join();  // Warten auf HTTP-Server-Thread
     }
     catch (const std::exception& ex) {
         std::cerr << "Fehler beim Starten der Anwendung: " << ex.what() << std::endl;

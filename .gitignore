@@ -1,0 +1,13 @@
+/.vs
+/packages
+*.pdb
+*.dll
+*.idb
+*.ilk
+*.log
+*.obj
+*.log
+*.log
+*.tlog
+/PiceaToLoxoneC++/x64/Debug
+*.exe

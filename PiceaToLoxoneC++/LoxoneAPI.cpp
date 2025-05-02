@@ -10,6 +10,7 @@
 #include <future>
 #include <cstdio>
 #include <cctype>
+#include <fstream> // Für das Schreiben in Dateien
 
 static const std::string base64_chars =
 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -307,274 +308,331 @@ void LoxoneAPI::StartMonitoringLoxone() {
     std::cout << "Loxone > StartMonitoring" << std::endl;
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        bool bSendFlag = false;
-        PiceaSettingData newpsd = {};
-        if (!Config::party_mode_enabled_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::party_mode_enabled_OUT);
-            if (!value.empty())
-            {
-                bool result = (value == "true" || value == "1");
-                auto& currentValue = PiceaAPI::PSD.party_mode_enabled.value;
-
-                if (currentValue.has_value() && currentValue.value() != result) {
-                    bSendFlag = true;
-                    newpsd.party_mode_enabled.value = result;
-                }
-            }
-        }
-        if (!Config::vacation_mode_enabled_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::vacation_mode_enabled_OUT);
-            if (!value.empty())
-            {
-                bool result = (value == "true" || value == "1");
-                auto& currentValue = PiceaAPI::PSD.vacation_mode_enabled.value;
-
-                if (currentValue.has_value() && currentValue.value() != result) {
-                    bSendFlag = true;
-                    newpsd.vacation_mode_enabled.value = result;
-                }
-            }
-        }
-        if (!Config::has_grid_tax_feedin_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::has_grid_tax_feedin_OUT);
-            if (!value.empty())
-            {
-                bool result = (value == "true" || value == "1");
-                auto& currentValue = PiceaAPI::PSD.has_grid_tax_feedin.value;
-
-                if (currentValue.has_value() && currentValue.value() != result) {
-                    bSendFlag = true;
-                    newpsd.has_grid_tax_feedin.value = result;
-                }
-            }
-        }
-        if (!Config::is_grid_connected_system_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::is_grid_connected_system_OUT);
-            if (!value.empty())
-            {
-                bool result = (value == "true" || value == "1");
-                auto& currentValue = PiceaAPI::PSD.is_grid_connected_system.value;
-
-                if (currentValue.has_value() && currentValue.value() != result) {
-                    bSendFlag = true;
-                    newpsd.is_grid_connected_system.value = result;
-                }
-            }
-        }
-        if (!Config::has_no_hot_water_integrated_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::has_no_hot_water_integrated_OUT);
-            if (!value.empty())
-            {
-                bool result = (value == "true" || value == "1");
-                auto& currentValue = PiceaAPI::PSD.has_no_hot_water_integrated.value;
-
-                if (currentValue.has_value() && currentValue.value() != result) {
-                    bSendFlag = true;
-                    newpsd.has_no_hot_water_integrated.value = result;
-                }
-            }
-        }
-        if (!Config::has_differential_pressure_gauge_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::has_differential_pressure_gauge_OUT);
-            if (!value.empty())
-            {
-                bool result = (value == "true" || value == "1");
-                auto& currentValue = PiceaAPI::PSD.has_differential_pressure_gauge.value;
-
-                if (currentValue.has_value() && currentValue.value() != result) {
-                    bSendFlag = true;
-                    newpsd.has_differential_pressure_gauge.value = result;
-                }
-            }
-        }
-        if (!Config::hydrogen_reserve_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::hydrogen_reserve_OUT);
-            if (!value.empty())
-            {
-                auto& currentValue = PiceaAPI::PSD.hydrogen_reserve.value;
-
-                if (currentValue.has_value() && currentValue.value() != atof(value.c_str())) {
-                    bSendFlag = true;
-                    newpsd.hydrogen_reserve.value = atof(value.c_str());
-                }
-            }
-        }
-        if (!Config::ext_battery_setup_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::ext_battery_setup_OUT);
-            if (!value.empty())
-            {
-                auto& currentValue = PiceaAPI::PSD.ext_battery_setup.value;
-                int iVal = atoi(value.c_str());
-
-                if (currentValue.has_value() && currentValue.value() != static_cast<ExtBatterySetup>(iVal)) {
-                    bSendFlag = true;
-                    newpsd.ext_battery_setup.value = static_cast<ExtBatterySetup>(iVal);
-                }
-            }
-        }
-        if (!Config::filter_exchange_state_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::filter_exchange_state_OUT);
-            if (!value.empty())
-            {
-                auto& currentValue = PiceaAPI::PSD.filter_exchange_state.value;
-                int iVal = atoi(value.c_str());
-                if (currentValue.has_value() && currentValue.value() != static_cast<FilterExchangeState>(iVal)) {
-                    bSendFlag = true;
-                    newpsd.filter_exchange_state.value = static_cast<FilterExchangeState>(iVal);
-                }
-            }
-        }
-        if (!Config::ventilation_stage_user_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::ventilation_stage_user_OUT);
-            if (!value.empty())
-            {
-                auto& currentValue = PiceaAPI::PSD.ventilation_stage_user.value;
-
-                if (currentValue.has_value() && currentValue.value() != atoi(value.c_str())) {
-                    bSendFlag = true;
-                    newpsd.ventilation_stage_user.value = atoi(value.c_str());
-                }
-            }
-        }
-        if (!Config::ventilation_temperature_target_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::ventilation_temperature_target_OUT);
-            if (!value.empty())
-            {
-                auto& currentValue = PiceaAPI::PSD.ventilation_temperature_target.value;
-
-                if (currentValue.has_value() && currentValue.value() != atof(value.c_str())) {
-                    bSendFlag = true;
-                    newpsd.ventilation_temperature_target.value = atof(value.c_str());
-                }
-            }
-        }
-        if (!Config::ventilation_night_enabled_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::ventilation_night_enabled_OUT);
-            if (!value.empty())
-            {
-                bool result = (value == "true" || value == "1");
-                auto& currentValue = PiceaAPI::PSD.ventilation_night_enabled.value;
-
-                if (currentValue.has_value() && currentValue.value() != result) {
-                    bSendFlag = true;
-                    newpsd.ventilation_night_enabled.value = result;
-                }
-            }
-        }
-        if (!Config::ventilation_night_stage_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::ventilation_night_stage_OUT);
-            if (!value.empty())
-            {
-                auto& currentValue = PiceaAPI::PSD.ventilation_night_stage.value;
-
-                if (currentValue.has_value() && currentValue.value() != atoi(value.c_str())) {
-                    bSendFlag = true;
-                    newpsd.ventilation_night_stage.value = atoi(value.c_str());
-                }
-            }
-        }
-        if (!Config::ventilation_night_time_start_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::ventilation_night_time_start_OUT);
-            if (!value.empty())
-            {
-                std::string newtime = sekundenInZeitformat(atoi(value.c_str()));
-                auto& currentValue = PiceaAPI::PSD.ventilation_night_time_start.value;
-                
-                if(currentValue.has_value() && currentValue.value() != newtime)
-                {
-                    bSendFlag = true;
-                    newpsd.ventilation_night_time_start.value = newtime;
-                }
-            }
-        }
-        if (!Config::ventilation_night_time_end_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::ventilation_night_time_end_OUT);
-            if (!value.empty())
-            {
-                std::string newtime = sekundenInZeitformat(atoi(value.c_str()));
-                auto& currentValue = PiceaAPI::PSD.ventilation_night_time_end.value;
-
-                if (currentValue.has_value() && currentValue.value() != newtime)
-                {
-                    bSendFlag = true;
-                    newpsd.ventilation_night_time_end.value = newtime;
-                }
-            }
-        }
-        if (!Config::compressor_blockage_duration_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::compressor_blockage_duration_OUT);
-            if (!value.empty())
-            {
-                auto& currentValue = PiceaAPI::PSD.compressor_blockage_duration.value;
-
-                if (currentValue.has_value() && currentValue.value() != atoi(value.c_str())) {
-                    bSendFlag = true;
-                    newpsd.compressor_blockage_duration.value = atoi(value.c_str());
-                }
-            }
-        }
-        if (!Config::is_surpluspower_heatpump_enabled_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::is_surpluspower_heatpump_enabled_OUT);
-            if (!value.empty())
-            {
-                bool result = (value == "true" || value == "1");
-                auto& currentValue = PiceaAPI::PSD.is_surpluspower_heatpump_enabled.value;
-
-                if (currentValue.has_value() && currentValue.value() != result) {
-                    bSendFlag = true;
-                    newpsd.is_surpluspower_heatpump_enabled.value = result;
-                }
-            }
-        }
-        if (!Config::is_surpluspower_grid_export_enabled_OUT.empty()) {
-            std::string value = CheckVirtualOutputStatus(Config::is_surpluspower_grid_export_enabled_OUT);
-            if (!value.empty())
-            {
-                bool result = (value == "true" || value == "1");                
-                auto& currentValue = PiceaAPI::PSD.is_surpluspower_grid_export_enabled.value;
-
-                if (currentValue.has_value() && currentValue.value() != result) {
-                    bSendFlag = true;
-                    newpsd.is_surpluspower_grid_export_enabled.value = result;
-                }
-            }
-        }
-        if (!Config::is_surpluspower_immersionheater_enabled_OUT.empty())
-        {
-            std::string value = CheckVirtualOutputStatus(Config::is_surpluspower_immersionheater_enabled_OUT);
-            if (!value.empty())
-            {
-                bool result = (value == "true" || value == "1");
-                auto& currentValue = PiceaAPI::PSD.is_surpluspower_immersionheater_enabled.value;
-
-                if (currentValue.has_value() && currentValue.value() != result) {
-                    bSendFlag = true;
-                    newpsd.is_surpluspower_immersionheater_enabled.value = result;
-                }
-            }
-        }
-
-        if(bSendFlag)
-            PiceaAPI::SendSettingsData(newpsd);
+        CheckLoxoneValues();
     }
+}
+
+void LoxoneAPI::CheckLoxoneValues() {
+    // Hier wird der Status der virtuellen Ausgänge überprüft
+    bool bSendFlag = false;
+    PiceaSettingData newpsd = {};
+
+    // Beispiel für das Logging
+    auto logChange = [](const std::string& settingName, const std::string& oldValue, const std::string& newValue) 
+    {
+        std::ofstream logFile("loxone_changes.log", std::ios::app);  // Öffne die Logdatei im Anhängemodus
+        if (logFile.is_open()) {
+            logFile << "Änderung erkannt: " << settingName
+                << " | Alt: " << oldValue
+                << " | Neu: " << newValue
+                << std::endl;
+        }
+        logFile.close();
+    };
+
+    if (!Config::party_mode_enabled_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::party_mode_enabled_OUT);
+        if (!value.empty())
+        {
+            bool result = (value == "true" || value == "1");
+            auto& currentValue = PiceaAPI::PSD.party_mode_enabled.value;
+
+            if (currentValue.has_value() && currentValue.value() != result) {
+                bSendFlag = true;
+                newpsd.party_mode_enabled.value = result;
+                // Logge die Änderung
+                logChange("party_mode_enabled", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", std::to_string(result));
+            }
+        }
+    }
+    if (!Config::vacation_mode_enabled_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::vacation_mode_enabled_OUT);
+        if (!value.empty())
+        {
+            bool result = (value == "true" || value == "1");
+            auto& currentValue = PiceaAPI::PSD.vacation_mode_enabled.value;
+
+            if (currentValue.has_value() && currentValue.value() != result) {
+                bSendFlag = true;
+                newpsd.vacation_mode_enabled.value = result;
+				// Logge die Änderung
+				logChange("vacation_mode_enabled", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", std::to_string(result));
+            }
+        }
+    }
+    if (!Config::has_grid_tax_feedin_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::has_grid_tax_feedin_OUT);
+        if (!value.empty())
+        {
+            bool result = (value == "true" || value == "1");
+            auto& currentValue = PiceaAPI::PSD.has_grid_tax_feedin.value;
+
+            if (currentValue.has_value() && currentValue.value() != result) {
+                bSendFlag = true;
+                newpsd.has_grid_tax_feedin.value = result;
+				// Logge die Änderung
+                logChange("has_grid_tax_feedin", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", std::to_string(result));
+            }
+        }
+    }
+    if (!Config::is_grid_connected_system_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::is_grid_connected_system_OUT);
+        if (!value.empty())
+        {
+            bool result = (value == "true" || value == "1");
+            auto& currentValue = PiceaAPI::PSD.is_grid_connected_system.value;
+
+            if (currentValue.has_value() && currentValue.value() != result) {
+                bSendFlag = true;
+                newpsd.is_grid_connected_system.value = result;
+				// Logge die Änderung
+				logChange("is_grid_connected_system", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", std::to_string(result));
+            }
+        }
+    }
+    if (!Config::has_no_hot_water_integrated_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::has_no_hot_water_integrated_OUT);
+        if (!value.empty())
+        {
+            bool result = (value == "true" || value == "1");
+            auto& currentValue = PiceaAPI::PSD.has_no_hot_water_integrated.value;
+
+            if (currentValue.has_value() && currentValue.value() != result) {
+                bSendFlag = true;
+                newpsd.has_no_hot_water_integrated.value = result;
+				// Logge die Änderung
+				logChange("has_no_hot_water_integrated", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", std::to_string(result));
+            }
+        }
+    }
+    if (!Config::has_differential_pressure_gauge_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::has_differential_pressure_gauge_OUT);
+        if (!value.empty())
+        {
+            bool result = (value == "true" || value == "1");
+            auto& currentValue = PiceaAPI::PSD.has_differential_pressure_gauge.value;
+
+            if (currentValue.has_value() && currentValue.value() != result) {
+                bSendFlag = true;
+                newpsd.has_differential_pressure_gauge.value = result;
+				// Logge die Änderung
+				logChange("has_differential_pressure_gauge", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", std::to_string(result));
+            }
+        }
+    }
+    if (!Config::hydrogen_reserve_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::hydrogen_reserve_OUT);
+        if (!value.empty())
+        {
+            auto& currentValue = PiceaAPI::PSD.hydrogen_reserve.value;
+
+            if (currentValue.has_value() && currentValue.value() != atof(value.c_str())) {
+                bSendFlag = true;
+                newpsd.hydrogen_reserve.value = atof(value.c_str());
+				// Logge die Änderung
+				logChange("hydrogen_reserve", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", value);
+            }
+        }
+    }
+    if (!Config::ext_battery_setup_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::ext_battery_setup_OUT);
+        if (!value.empty())
+        {
+            auto& currentValue = PiceaAPI::PSD.ext_battery_setup.value;
+            int iVal = atoi(value.c_str());
+
+            if (currentValue.has_value() && currentValue.value() != static_cast<ExtBatterySetup>(iVal)) {
+                bSendFlag = true;
+                newpsd.ext_battery_setup.value = static_cast<ExtBatterySetup>(iVal);
+				// Logge die Änderung
+				logChange("ext_battery_setup", currentValue.has_value() ? std::to_string(static_cast<int>(currentValue.value())) : "null", value);
+            }
+        }
+    }
+    if (!Config::filter_exchange_state_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::filter_exchange_state_OUT);
+        if (!value.empty())
+        {
+            auto& currentValue = PiceaAPI::PSD.filter_exchange_state.value;
+            int iVal = atoi(value.c_str());
+            if (currentValue.has_value() && currentValue.value() != static_cast<FilterExchangeState>(iVal)) {
+                bSendFlag = true;
+                newpsd.filter_exchange_state.value = static_cast<FilterExchangeState>(iVal);
+				// Logge die Änderung
+				logChange("filter_exchange_state", currentValue.has_value() ? std::to_string(static_cast<int>(currentValue.value())) : "null", value);
+            }
+        }
+    }
+    if (!Config::ventilation_stage_user_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::ventilation_stage_user_OUT);
+        if (!value.empty())
+        {
+            auto& currentValue = PiceaAPI::PSD.ventilation_stage_user.value;
+
+            if (currentValue.has_value() && currentValue.value() != atoi(value.c_str())) {
+                bSendFlag = true;
+                newpsd.ventilation_stage_user.value = atoi(value.c_str());
+				// Logge die Änderung
+				logChange("ventilation_stage_user", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", value);
+            }
+        }
+    }
+    if (!Config::ventilation_temperature_target_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::ventilation_temperature_target_OUT);
+        if (!value.empty())
+        {
+            auto& currentValue = PiceaAPI::PSD.ventilation_temperature_target.value;
+
+            if (currentValue.has_value() && currentValue.value() != atof(value.c_str())) {
+                bSendFlag = true;
+                newpsd.ventilation_temperature_target.value = atof(value.c_str());
+				// Logge die Änderung
+				logChange("ventilation_temperature_target", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", value);
+            }
+        }
+    }
+    if (!Config::ventilation_night_enabled_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::ventilation_night_enabled_OUT);
+        if (!value.empty())
+        {
+            bool result = (value == "true" || value == "1");
+            auto& currentValue = PiceaAPI::PSD.ventilation_night_enabled.value;
+
+            if (currentValue.has_value() && currentValue.value() != result) {
+                bSendFlag = true;
+                newpsd.ventilation_night_enabled.value = result;
+				// Logge die Änderung
+				logChange("ventilation_night_enabled", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", std::to_string(result));
+            }
+        }
+    }
+    if (!Config::ventilation_night_stage_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::ventilation_night_stage_OUT);
+        if (!value.empty())
+        {
+            auto& currentValue = PiceaAPI::PSD.ventilation_night_stage.value;
+
+            if (currentValue.has_value() && currentValue.value() != atoi(value.c_str())) {
+                bSendFlag = true;
+                newpsd.ventilation_night_stage.value = atoi(value.c_str());
+				// Logge die Änderung
+				logChange("ventilation_night_stage", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", value);
+            }
+        }
+    }
+    if (!Config::ventilation_night_time_start_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::ventilation_night_time_start_OUT);
+        if (!value.empty())
+        {
+            std::string newtime = sekundenInZeitformat(atoi(value.c_str()));
+            auto& currentValue = PiceaAPI::PSD.ventilation_night_time_start.value;
+
+            if (currentValue.has_value() && currentValue.value() != newtime)
+            {
+                bSendFlag = true;
+                newpsd.ventilation_night_time_start.value = newtime;
+				// Logge die Änderung
+				logChange("ventilation_night_time_start", currentValue.has_value() ? currentValue.value() : "null", newtime);
+            }
+        }
+    }
+    if (!Config::ventilation_night_time_end_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::ventilation_night_time_end_OUT);
+        if (!value.empty())
+        {
+            std::string newtime = sekundenInZeitformat(atoi(value.c_str()));
+            auto& currentValue = PiceaAPI::PSD.ventilation_night_time_end.value;
+
+            if (currentValue.has_value() && currentValue.value() != newtime)
+            {
+                bSendFlag = true;
+                newpsd.ventilation_night_time_end.value = newtime;
+				// Logge die Änderung
+				logChange("ventilation_night_time_end", currentValue.has_value() ? currentValue.value() : "null", newtime);
+            }
+        }
+    }
+    if (!Config::compressor_blockage_duration_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::compressor_blockage_duration_OUT);
+        if (!value.empty())
+        {
+            auto& currentValue = PiceaAPI::PSD.compressor_blockage_duration.value;
+
+            if (currentValue.has_value() && currentValue.value() != atoi(value.c_str())) {
+                bSendFlag = true;
+                newpsd.compressor_blockage_duration.value = atoi(value.c_str());
+				// Logge die Änderung
+				logChange("compressor_blockage_duration", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", value);
+            }
+        }
+    }
+    if (!Config::is_surpluspower_heatpump_enabled_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::is_surpluspower_heatpump_enabled_OUT);
+        if (!value.empty())
+        {
+            bool result = (value == "true" || value == "1");
+            auto& currentValue = PiceaAPI::PSD.is_surpluspower_heatpump_enabled.value;
+
+            if (currentValue.has_value() && currentValue.value() != result) {
+                bSendFlag = true;
+                newpsd.is_surpluspower_heatpump_enabled.value = result;
+				// Logge die Änderung
+				logChange("is_surpluspower_heatpump_enabled", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", std::to_string(result));
+            }
+        }
+    }
+    if (!Config::is_surpluspower_grid_export_enabled_OUT.empty()) {
+        std::string value = CheckVirtualOutputStatus(Config::is_surpluspower_grid_export_enabled_OUT);
+        if (!value.empty())
+        {
+            bool result = (value == "true" || value == "1");
+            auto& currentValue = PiceaAPI::PSD.is_surpluspower_grid_export_enabled.value;
+
+            if (currentValue.has_value() && currentValue.value() != result) {
+                bSendFlag = true;
+                newpsd.is_surpluspower_grid_export_enabled.value = result;
+				// Logge die Änderung
+				logChange("is_surpluspower_grid_export_enabled", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", std::to_string(result));
+            }
+        }
+    }
+    if (!Config::is_surpluspower_immersionheater_enabled_OUT.empty())
+    {
+        std::string value = CheckVirtualOutputStatus(Config::is_surpluspower_immersionheater_enabled_OUT);
+        if (!value.empty())
+        {
+            bool result = (value == "true" || value == "1");
+            auto& currentValue = PiceaAPI::PSD.is_surpluspower_immersionheater_enabled.value;
+
+            if (currentValue.has_value() && currentValue.value() != result) {
+                bSendFlag = true;
+                newpsd.is_surpluspower_immersionheater_enabled.value = result;
+				// Logge die Änderung
+				logChange("is_surpluspower_immersionheater_enabled", currentValue.has_value() ? std::to_string(currentValue.value()) : "null", std::to_string(result));
+            }
+        }
+    }
+
+    // Sende nur änderungen :)
+    if (bSendFlag)
+        PiceaAPI::SendSettingsData(newpsd);
 }
 
 std::string LoxoneAPI::CheckVirtualOutputStatus(const std::string& output) {
@@ -710,3 +768,117 @@ size_t LoxoneAPI::WriteCallback(void* contents, size_t size, size_t nmemb, void*
     }
     return totalSize;
 }
+#include "civetweb.h"
+
+int request_handler(struct mg_connection* conn, void* cbdata) {
+    const mg_request_info* req_info = mg_get_request_info(conn);
+
+    //std::cout << "Neue Anfrage erhalten: Methode = " << req_info->request_method << std::endl;
+
+    // IP-Adresse des anfragenden Clients
+    std::string client_ip(req_info->remote_addr);
+    std::cout << "Client IP: " << client_ip << std::endl;
+    // Überprüfen, ob die IP mit der konfigurierten IP übereinstimmt
+    if (client_ip != Config::LoxoneIP) {
+        std::cout << "Fehler: IP-Adresse stimmt nicht überein! Erforderlich: " << Config::LoxoneIP << ", aber erhalten: " << client_ip << std::endl;
+        mg_printf(conn,
+            "HTTP/1.1 403 Forbidden\r\n"
+            "Content-Type: text/plain\r\n"
+            "Content-Length: 15\r\n\r\n"
+            "Forbidden: IP mismatch");
+        return 1;
+    }
+
+    std::string query;
+
+    if (std::string(req_info->request_method) == "POST") {
+        // Body lesen
+        char buffer[1024];
+        int bytes_read = mg_read(conn, buffer, sizeof(buffer) - 1);
+        if (bytes_read > 0) {
+            buffer[bytes_read] = '\0';
+            query = buffer;
+        }
+        else {
+            std::cout << "Fehler: POST-Daten konnten nicht gelesen werden!" << std::endl;
+        }
+    }
+    else if (std::string(req_info->request_method) == "GET") {
+        if (req_info->query_string) {
+            query = req_info->query_string;
+        }
+        else {
+            std::cout << "Fehler: GET-Query-String ist leer!" << std::endl;
+        }
+    }
+
+    if (std::string(req_info->local_uri) == "/set") {
+        if (query.empty()) {
+            // Keine Query-Daten vorhanden
+            std::cout << "Fehler: Keine Query-Daten vorhanden!" << std::endl;
+            mg_printf(conn,
+                "HTTP/1.1 400 Bad Request\r\n"
+                "Content-Type: text/plain\r\n"
+                "Content-Length: 11\r\n\r\n"
+                "Bad Request");
+            return 1;
+        }
+
+        char valueBuffer[100] = { 0 };
+        mg_get_var(query.c_str(), query.length(), "value", valueBuffer, sizeof(valueBuffer) - 1);
+
+        std::string valueStr(valueBuffer);
+        //std::cout << "Empfangener Wert: " << valueStr << std::endl;
+
+        if (valueStr == "1") {
+            // Dein eigener Code hier
+            std::cout << "Updating Picea!" << std::endl;
+            LoxoneAPI loxoneAPI;
+            loxoneAPI.CheckLoxoneValues();
+        }
+        else {
+            std::cout << "Fehler: Unerwarteter Wert empfangen! Wert: " << valueStr << std::endl;
+        }
+
+        mg_printf(conn,
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/plain\r\n"
+            "Content-Length: 2\r\n\r\n"
+            "OK");
+        return 1;
+    }
+
+    // Andere URIs nicht behandelt
+    std::cout << "Fehler: URI nicht gefunden: " << req_info->local_uri << std::endl;
+    mg_printf(conn,
+        "HTTP/1.1 404 Not Found\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: 9\r\n\r\n"
+        "Not Found");
+    return 1;
+}
+
+
+#include <functional> // für std::bind
+void LoxoneAPI::StartHttpServer() {
+    const char* options[] = {
+        "listening_ports", "8080",
+        nullptr
+    };
+
+    struct mg_callbacks callbacks;
+    memset(&callbacks, 0, sizeof(callbacks));
+    struct mg_context* ctx = mg_start(&callbacks, nullptr, options);
+
+    if (ctx == nullptr) {
+        std::cerr << "Fehler beim Starten des Civetweb-Servers!" << std::endl;
+        return;
+    }
+
+    mg_set_request_handler(ctx, "/set", request_handler, nullptr);
+    std::cerr << "HTTP Server läuft auf hxxp://0.0.0.0:8080" << std::endl;
+    // Server läuft jetzt, mg_stop(ctx) wird aufgerufen, wenn du ihn beenden willst
+}
+
+
+

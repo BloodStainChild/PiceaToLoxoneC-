@@ -24,6 +24,12 @@ public:
     // Startet das Monitoring des virtuellen Ausgangs (blockierende Endlosschleife)
     void StartMonitoringLoxone();
 
+    // Neu 
+    void StartHttpServer();
+
+    // Sendet die Daten an Loxone wenn sie unterschiedlich sind
+    void CheckLoxoneValues();
+
 private:
     // Prüft den Status eines virtuellen Ausgangs
     std::string CheckVirtualOutputStatus(const std::string& output);
