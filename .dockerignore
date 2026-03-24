@@ -1,0 +1,9 @@
+logs/
+.git/
+.gitignore
+**/*.o
+**/PiceaToLoxone
+**/PiceaToLoxoneD
+**/Debug/
+**/Release/
+**/.vs/
