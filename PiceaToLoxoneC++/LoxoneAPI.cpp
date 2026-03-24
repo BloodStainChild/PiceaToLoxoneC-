@@ -1,5 +1,6 @@
 #include "LoxoneAPI.h"
 #include "Config.h"
+#include "Logger.h"
 #include <curl/curl.h>
 #include <json/json.h>
 #include <sstream>
@@ -11,11 +12,30 @@
 #include <cstdio>
 #include <cctype>
 #include <fstream> // Für das Schreiben in Dateien
+#include <cstring>
 
 static const std::string base64_chars =
 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 "abcdefghijklmnopqrstuvwxyz"
 "0123456789+/";
+
+static std::string RedactUrl(const std::string& url)
+{
+    std::string redacted = url;
+
+    std::size_t schemePos = redacted.find("://");
+    if (schemePos != std::string::npos)
+    {
+        std::size_t userInfoStart = schemePos + 3;
+        std::size_t atPos = redacted.find('@', userInfoStart);
+        if (atPos != std::string::npos)
+        {
+            redacted.erase(userInfoStart, atPos - userInfoStart + 1);
+        }
+    }
+
+    return redacted;
+}
 
 int LoxoneAPI::zeitInSekunden(const std::string& zeit) {
     int stunden, minuten, sekunden;
@@ -55,11 +75,10 @@ LoxoneAPI::~LoxoneAPI() {
 }
 
 void LoxoneAPI::SubscribeToPiceaAPI() {
-    std::cout << "Loxone > SubscribeToPiceaAPI" << std::endl;
-    // Abonnieren des PiceaAPI-Callbacks: Der Callback wird auf diese Instanz-Methode gesetzt.
+    Logger::Info("LoxoneAPI", "Subscribed to Picea data callback.");
     PiceaAPI::OnDataFetched = [this](const PiceaData& data, const PiceaSettingData& settings) {
         this->HandleFetchedData(data, settings);
-        };
+    };
 }
 
 void LoxoneAPI::HandleFetchedData(const PiceaData& data, const PiceaSettingData& settings) {
@@ -279,35 +298,37 @@ void LoxoneAPI::HandleFetchedData(const PiceaData& data, const PiceaSettingData&
             t.get();
         }
         catch (const std::exception& ex) {
-            std::cerr << "Ein Fehler ist bei einer Anfrage aufgetreten: " << ex.what() << std::endl;
+            Logger::Error("LoxoneAPI", "One async send request failed: " + std::string(ex.what()));
         }
     }
 }
 
 bool LoxoneAPI::SendDataToLoxone(const std::string& virtuellerEingang, const std::string& value) {
     try {
-        // Baue die URL ohne eingebettete Benutzerdaten
         std::string url = "https://" + Config::LoxoneIP + "/jdev/sps/io/" + virtuellerEingang + "/" + value;
         std::string response;
         if (!HttpGet(url, response)) {
-            std::cerr << "Loxone > Fehler beim Senden an Loxone: HTTP Request failed." << std::endl;
+            Logger::Error("LoxoneAPI", "HTTP request to Loxone failed for input '" + virtuellerEingang + "'.");
             return false;
         }
         if (!ExtractStatusCode(response)) {
-            std::cerr << "Loxone > Fehler beim Senden an Loxone: " << response << std::endl;
+            Logger::Error("LoxoneAPI", "Loxone rejected value update for input '" + virtuellerEingang + "'. Response: " + response);
+            return false;
         }
+
+        Logger::Debug("LoxoneAPI", "Value sent successfully to '" + virtuellerEingang + "' with value '" + value + "'.");
         return true;
     }
     catch (const std::exception& ex) {
-        std::cerr << "Loxone > Fehler beim Senden der Anfrage an Loxone: " << ex.what() << std::endl;
+        Logger::Error("LoxoneAPI", "Exception while sending data to Loxone for input '" + virtuellerEingang + "': " + std::string(ex.what()));
         return false;
     }
 }
 
 void LoxoneAPI::StartMonitoringLoxone() {
-    std::cout << "Loxone > StartMonitoring" << std::endl;
+    Logger::Info("LoxoneAPI", "Monitoring loop started with interval=" + std::to_string(Config::PollIntervalSeconds) + "s.");
     while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(Config::PollIntervalSeconds));
         CheckLoxoneValues();
     }
 }
@@ -318,16 +339,9 @@ void LoxoneAPI::CheckLoxoneValues() {
     PiceaSettingData newpsd = {};
 
     // Beispiel für das Logging
-    auto logChange = [](const std::string& settingName, const std::string& oldValue, const std::string& newValue) 
+    auto logChange = [](const std::string& settingName, const std::string& oldValue, const std::string& newValue)
     {
-        std::ofstream logFile("loxone_changes.log", std::ios::app);  // Öffne die Logdatei im Anhängemodus
-        if (logFile.is_open()) {
-            logFile << "Änderung erkannt: " << settingName
-                << " | Alt: " << oldValue
-                << " | Neu: " << newValue
-                << std::endl;
-        }
-        logFile.close();
+        Logger::Change("Loxone->Picea", settingName, oldValue, newValue, "pending_send");
     };
 
     if (!Config::party_mode_enabled_OUT.empty())
@@ -632,28 +646,30 @@ void LoxoneAPI::CheckLoxoneValues() {
 
     // Sende nur änderungen :)
     if (bSendFlag)
+    {
+        Logger::Info("LoxoneAPI", "Detected changed virtual outputs. Sending updated settings to Picea.");
         PiceaAPI::SendSettingsData(newpsd);
+    }
 }
 
 std::string LoxoneAPI::CheckVirtualOutputStatus(const std::string& output) {
     try {
-        // URL mit eingebetteten Benutzerdaten (Format: user:password@IP)
         std::string url = "https://" + Config::LoxoneUser + ":" + Config::LoxonePW + "@" + Config::LoxoneIP + "/jdev/sps/io/" + output;
         std::string response;
         if (!HttpGet(url, response)) {
-            std::cerr << "Loxone > Fehler beim Abfragen des virtuellen Ausgangs: HTTP Request failed." << std::endl;
-            return ""; // Fehler, leere Antwort    
+            Logger::Error("LoxoneAPI", "Failed to query virtual output '" + output + "'.");
+            return "";
         }
         std::string value = ExtractStatusValue(response);
         if (value.empty()) {
-            std::cerr << "Loxone > Fehler: Kein Statuswert in der Antwort." << std::endl;
-            return ""; // Fehler, leere Antwort    
+            Logger::Warn("LoxoneAPI", "No status value returned for virtual output '" + output + "'.");
+            return "";
         }
         return value;
     }
     catch (const std::exception& ex) {
-        std::cerr << "Loxone > Fehler bei der Anfrage: " << ex.what() << std::endl;
-        return ""; // Fehler, leere Antwort    
+        Logger::Error("LoxoneAPI", "Exception while querying virtual output '" + output + "': " + std::string(ex.what()));
+        return "";
     }
 }
 
@@ -664,14 +680,14 @@ std::string LoxoneAPI::ExtractStatusValue(const std::string& responseContent) {
         std::string errs;
         std::istringstream iss(responseContent);
         if (!Json::parseFromStream(builder, iss, &root, &errs)) {
-            std::cerr << "Loxone > Fehler beim Parsen der Antwort: " << errs << std::endl;
+            Logger::Error("LoxoneAPI", "Failed to parse status response: " + errs);
             return "";
         }
         if (root.isMember("LL") && root["LL"].isObject() && root["LL"].isMember("value"))
             return root["LL"]["value"].asString();
     }
     catch (const std::exception& ex) {
-        std::cerr << "Loxone > Fehler beim Parsen der Antwort: " << ex.what() << std::endl;
+        Logger::Error("LoxoneAPI", "Exception while parsing status value: " + std::string(ex.what()));
     }
     return "";
 }
@@ -683,7 +699,7 @@ bool LoxoneAPI::ExtractStatusCode(const std::string& responseContent) {
         std::string errs;
         std::istringstream iss(responseContent);
         if (!Json::parseFromStream(builder, iss, &root, &errs)) {
-            std::cerr << "Loxone > Fehler beim Parsen der Antwort: " << errs << std::endl;
+            Logger::Error("LoxoneAPI", "Failed to parse Loxone response code: " + errs);
             return false;
         }
         if (root.isMember("LL") && root["LL"].isObject() && root["LL"].isMember("Code")) {
@@ -692,7 +708,7 @@ bool LoxoneAPI::ExtractStatusCode(const std::string& responseContent) {
         }
     }
     catch (const std::exception& ex) {
-        std::cerr << "Loxone > Fehler beim Parsen der Antwort: " << ex.what() << std::endl;
+        Logger::Error("LoxoneAPI", "Exception while parsing response code: " + std::string(ex.what()));
     }
     return false;
 }
@@ -700,7 +716,7 @@ bool LoxoneAPI::ExtractStatusCode(const std::string& responseContent) {
 bool LoxoneAPI::HttpGet(const std::string& url, std::string& response) {
     CURL* curl = curl_easy_init();
     if (!curl) {
-        std::cerr << "Fehler bei der Initialisierung von cURL" << std::endl;
+        Logger::Error("LoxoneAPI", "Failed to initialize cURL.");
         return false;
     }
 
@@ -709,34 +725,40 @@ bool LoxoneAPI::HttpGet(const std::string& url, std::string& response) {
     struct curl_slist* headers = nullptr;
     std::string authHeader = "Authorization: Basic " + Base64Encode(Config::LoxoneUser + ":" + Config::LoxonePW);
     headers = curl_slist_append(headers, authHeader.c_str());
+    if (!headers) {
+        Logger::Error("LoxoneAPI", "Failed to create HTTP headers.");
+        curl_easy_cleanup(curl);
+        return false;
+    }
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
-    // SSL-Überprüfung aktivieren (für Produktionsumgebungen)
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L); // SSL-Überprüfung deaktivieren
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L); // Host-Überprüfung deaktivieren
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);
 
-
-    // Callback-Funktion für Antwort
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
     CURLcode res = curl_easy_perform(curl);
-    if (res != CURLE_OK) {
-        std::cerr << "HTTP GET Error: " << curl_easy_strerror(res) << std::endl;
-        curl_easy_cleanup(curl);
-        return false;
-    }
-
-    // HTTP-Statuscode prüfen
     long httpCode = 0;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-    if (httpCode != 200) {
-        std::cerr << "HTTP Fehlercode: " << httpCode << std::endl;
-        curl_easy_cleanup(curl);
+    if (res == CURLE_OK) {
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+    }
+
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK) {
+        Logger::Error("LoxoneAPI", "HTTP GET failed for " + RedactUrl(url) + ": " + std::string(curl_easy_strerror(res)));
         return false;
     }
 
-    curl_easy_cleanup(curl);
+    if (httpCode != 200) {
+        Logger::Error("LoxoneAPI", "HTTP status " + std::to_string(httpCode) + " for " + RedactUrl(url));
+        return false;
+    }
+
     return true;
 }
 
@@ -771,16 +793,17 @@ size_t LoxoneAPI::WriteCallback(void* contents, size_t size, size_t nmemb, void*
 #include "civetweb.h"
 
 int request_handler(struct mg_connection* conn, void* cbdata) {
+    (void)cbdata;
     const mg_request_info* req_info = mg_get_request_info(conn);
 
-    //std::cout << "Neue Anfrage erhalten: Methode = " << req_info->request_method << std::endl;
+    const std::string method = req_info->request_method ? req_info->request_method : "";
+    const std::string client_ip = std::string(req_info->remote_addr);
+    const std::string local_uri = req_info->local_uri ? req_info->local_uri : "";
 
-    // IP-Adresse des anfragenden Clients
-    std::string client_ip(req_info->remote_addr);
-    std::cout << "Client IP: " << client_ip << std::endl;
-    // Überprüfen, ob die IP mit der konfigurierten IP übereinstimmt
+    Logger::Info("HttpServer", "Incoming request method=" + method + " uri=" + local_uri + " client=" + client_ip);
+
     if (client_ip != Config::LoxoneIP) {
-        std::cout << "Fehler: IP-Adresse stimmt nicht überein! Erforderlich: " << Config::LoxoneIP << ", aber erhalten: " << client_ip << std::endl;
+        Logger::Warn("HttpServer", "Rejected request because client IP does not match configured Loxone IP. expected=" + Config::LoxoneIP + " got=" + client_ip);
         mg_printf(conn,
             "HTTP/1.1 403 Forbidden\r\n"
             "Content-Type: text/plain\r\n"
@@ -791,8 +814,7 @@ int request_handler(struct mg_connection* conn, void* cbdata) {
 
     std::string query;
 
-    if (std::string(req_info->request_method) == "POST") {
-        // Body lesen
+    if (method == "POST") {
         char buffer[1024];
         int bytes_read = mg_read(conn, buffer, sizeof(buffer) - 1);
         if (bytes_read > 0) {
@@ -800,22 +822,21 @@ int request_handler(struct mg_connection* conn, void* cbdata) {
             query = buffer;
         }
         else {
-            std::cout << "Fehler: POST-Daten konnten nicht gelesen werden!" << std::endl;
+            Logger::Warn("HttpServer", "POST body could not be read.");
         }
     }
-    else if (std::string(req_info->request_method) == "GET") {
+    else if (method == "GET") {
         if (req_info->query_string) {
             query = req_info->query_string;
         }
         else {
-            std::cout << "Fehler: GET-Query-String ist leer!" << std::endl;
+            Logger::Warn("HttpServer", "GET request arrived without query string.");
         }
     }
 
-    if (std::string(req_info->local_uri) == "/set") {
+    if (local_uri == "/set") {
         if (query.empty()) {
-            // Keine Query-Daten vorhanden
-            std::cout << "Fehler: Keine Query-Daten vorhanden!" << std::endl;
+            Logger::Warn("HttpServer", "Rejected /set request because no query data was provided.");
             mg_printf(conn,
                 "HTTP/1.1 400 Bad Request\r\n"
                 "Content-Type: text/plain\r\n"
@@ -828,16 +849,14 @@ int request_handler(struct mg_connection* conn, void* cbdata) {
         mg_get_var(query.c_str(), query.length(), "value", valueBuffer, sizeof(valueBuffer) - 1);
 
         std::string valueStr(valueBuffer);
-        //std::cout << "Empfangener Wert: " << valueStr << std::endl;
 
         if (valueStr == "1") {
-            // Dein eigener Code hier
-            std::cout << "Updating Picea!" << std::endl;
+            Logger::Info("HttpServer", "Accepted /set request with value=1 from client=" + client_ip);
             LoxoneAPI loxoneAPI;
             loxoneAPI.CheckLoxoneValues();
         }
         else {
-            std::cout << "Fehler: Unerwarteter Wert empfangen! Wert: " << valueStr << std::endl;
+            Logger::Warn("HttpServer", "Unexpected value received on /set: " + valueStr);
         }
 
         mg_printf(conn,
@@ -848,8 +867,7 @@ int request_handler(struct mg_connection* conn, void* cbdata) {
         return 1;
     }
 
-    // Andere URIs nicht behandelt
-    std::cout << "Fehler: URI nicht gefunden: " << req_info->local_uri << std::endl;
+    Logger::Warn("HttpServer", "URI not found: " + local_uri);
     mg_printf(conn,
         "HTTP/1.1 404 Not Found\r\n"
         "Content-Type: text/plain\r\n"
@@ -858,11 +876,11 @@ int request_handler(struct mg_connection* conn, void* cbdata) {
     return 1;
 }
 
-
-#include <functional> // für std::bind
+#include <functional> // f\xfcr std::bind
 void LoxoneAPI::StartHttpServer() {
+    const std::string listenAddress = Config::HttpBindAddress + ":" + std::to_string(Config::HttpPort);
     const char* options[] = {
-        "listening_ports", "8080",
+        "listening_ports", listenAddress.c_str(),
         nullptr
     };
 
@@ -871,13 +889,13 @@ void LoxoneAPI::StartHttpServer() {
     struct mg_context* ctx = mg_start(&callbacks, nullptr, options);
 
     if (ctx == nullptr) {
-        std::cerr << "Fehler beim Starten des Civetweb-Servers!" << std::endl;
+        Logger::Error("HttpServer", "Failed to start CivetWeb server on " + listenAddress + ".");
         return;
     }
 
     mg_set_request_handler(ctx, "/set", request_handler, nullptr);
-    std::cerr << "HTTP Server läuft auf hxxp://0.0.0.0:8080" << std::endl;
-    // Server läuft jetzt, mg_stop(ctx) wird aufgerufen, wenn du ihn beenden willst
+    Logger::Info("HttpServer", "HTTP server is listening on " + listenAddress);
+    Logger::Info("HttpServer", "Allowed client IP is " + Config::LoxoneIP);
 }
 
 

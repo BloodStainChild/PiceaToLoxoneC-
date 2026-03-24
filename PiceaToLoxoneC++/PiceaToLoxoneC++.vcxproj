@@ -132,12 +132,14 @@
   <ItemGroup>
     <ClCompile Include="..\civetweb\src\civetweb.c" />
     <ClCompile Include="Config.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="LoxoneAPI.cpp" />
     <ClCompile Include="PiceaAPI.cpp" />
     <ClCompile Include="Program.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="LoxoneAPI.h" />
     <ClInclude Include="PiceaAPI.h" />
   </ItemGroup>

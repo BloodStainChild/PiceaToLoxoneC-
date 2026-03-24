@@ -1,1 +1,104 @@
-﻿
+﻿  Config.cpp
+  LoxoneAPI.cpp
+  PiceaAPI.cpp
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(156,65): warning C4244: "=": Konvertierung von "_Ty" in "_Ty", möglicher Datenverlust
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(156,65): warning C4244:         with
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(156,65): warning C4244:         [
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(156,65): warning C4244:             _Ty=double
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(156,65): warning C4244:         ]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(156,65): warning C4244:         and
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(156,65): warning C4244:         [
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(156,65): warning C4244:             _Ty=int
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(156,65): warning C4244:         ]
+  (Quelldatei „PiceaAPI.cpp“ wird kompiliert)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(156,65):
+      der Vorlageninstanziierungskontext (der älteste zuerst) ist
+          C:\Users\HNGPC5.0\source\repos\PiceaToLoxoneC++\PiceaToLoxoneC++\PiceaAPI.cpp(492,48):
+          Siehe Verweis auf die gerade kompilierte Instanziierung "std::optional<int> &std::optional<int>::operator =<double,0>(_Ty2 &&) noexcept" der Funktions-Vorlage.
+          with
+          [
+              _Ty2=double
+          ]
+              C:\Users\HNGPC5.0\source\repos\PiceaToLoxoneC++\PiceaToLoxoneC++\PiceaAPI.cpp(492,48):
+              Ersten Verweis auf "std::optional<int>::operator =" in "PiceaAPI::FetchData" anzeigen
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(297,15):
+          Siehe Verweis auf die gerade kompilierte Instanziierung "void std::_Optional_construct_base<_Ty>::_Assign<double>(_Ty2 &&) noexcept" der Funktions-Vorlage.
+          with
+          [
+              _Ty=int,
+              _Ty2=double
+          ]
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(492,64): warning C4244: "Initialisierung": Konvertierung von "_Ty" in "_Ty", möglicher Datenverlust
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(492,64): warning C4244:         with
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(492,64): warning C4244:         [
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(492,64): warning C4244:             _Ty=double
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(492,64): warning C4244:         ]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(492,64): warning C4244:         and
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(492,64): warning C4244:         [
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(492,64): warning C4244:             _Ty=int
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(492,64): warning C4244:         ]
+  (Quelldatei „PiceaAPI.cpp“ wird kompiliert)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(492,64):
+      der Vorlageninstanziierungskontext (der älteste zuerst) ist
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(297,15):
+          Siehe Verweis auf die gerade kompilierte Instanziierung "void std::_Optional_construct_base<_Ty>::_Assign<double>(_Ty2 &&) noexcept" der Funktions-Vorlage.
+          with
+          [
+              _Ty=int,
+              _Ty2=double
+          ]
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(158,13):
+          Siehe Verweis auf die gerade kompilierte Instanziierung "_Ty &std::_Optional_construct_base<_Ty>::_Construct<double>(double &&) noexcept" der Funktions-Vorlage.
+          with
+          [
+              _Ty=int
+          ]
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(146,14):
+          Siehe Verweis auf die gerade kompilierte Instanziierung "void std::_Construct_in_place<int,_Ty>(int &,_Ty &&) noexcept" der Funktions-Vorlage.
+          with
+          [
+              _Ty=double
+          ]
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(502,14):
+          Siehe Verweis auf die gerade kompilierte Instanziierung "_Ty *std::construct_at<_Ty,double>(_Ty *const ,double &&) noexcept(<expr>)" der Funktions-Vorlage.
+          with
+          [
+              _Ty=int
+          ]
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(506,61): warning C4244: "Initialisierung": Konvertierung von "_Ty" in "int", möglicher Datenverlust
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(506,61): warning C4244:         with
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(506,61): warning C4244:         [
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(506,61): warning C4244:             _Ty=double
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(506,61): warning C4244:         ]
+  (Quelldatei „PiceaAPI.cpp“ wird kompiliert)
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(493,69): warning C4244: "Initialisierung": Konvertierung von "_Ty" in "_Ty", möglicher Datenverlust
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(493,69): warning C4244:         with
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(493,69): warning C4244:         [
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(493,69): warning C4244:             _Ty=double
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(493,69): warning C4244:         ]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(493,69): warning C4244:         and
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(493,69): warning C4244:         [
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(493,69): warning C4244:             _Ty=int
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(493,69): warning C4244:         ]
+  (Quelldatei „PiceaAPI.cpp“ wird kompiliert)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(493,69):
+      der Vorlageninstanziierungskontext (der älteste zuerst) ist
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\optional(146,14):
+          Siehe Verweis auf die gerade kompilierte Instanziierung "void std::_Construct_in_place<int,_Ty>(int &,_Ty &&) noexcept" der Funktions-Vorlage.
+          with
+          [
+              _Ty=double
+          ]
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\include\xutility(502,14):
+          Siehe Verweis auf die gerade kompilierte Instanziierung "_Ty *std::construct_at<_Ty,double>(_Ty *const ,double &&) noexcept" der Funktions-Vorlage.
+          with
+          [
+              _Ty=int
+          ]
+  
+  Program.cpp
+  Code wird generiert...
+  PiceaToLoxoneC++.vcxproj -> C:\Users\HNGPC5.0\source\repos\PiceaToLoxoneC++\x64\Debug\PiceaToLoxoneC++.exe

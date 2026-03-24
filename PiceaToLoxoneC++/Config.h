@@ -16,6 +16,9 @@ public:
     static std::string PiceaIP;
     static std::string PiceaPort;
     static std::string PiceaJWT;
+    static int PollIntervalSeconds;
+    static int HttpPort;
+    static std::string HttpBindAddress;
 
     static bool LoadConfig();
 

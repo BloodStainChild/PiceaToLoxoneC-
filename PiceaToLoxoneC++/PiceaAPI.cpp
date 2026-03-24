@@ -1,5 +1,6 @@
 #include "PiceaAPI.h"
 #include "Config.h"
+#include "Logger.h"
 #include <curl/curl.h>
 #include <json/json.h>
 #include <iostream>
@@ -8,6 +9,7 @@
 #include <chrono>
 #include <ctime>
 #include <cstdio>
+#include <cstdint>
 
 // Initialisierung der statischen Mitglieder
 std::function<void(PiceaData, PiceaSettingData)> PiceaAPI::OnDataFetched = nullptr;
@@ -18,18 +20,46 @@ PiceaSettingData PiceaAPI::PSD = {};
 
 bool PiceaAPI::StartLoop()
 {
+    std::uint64_t successfulFetches = 0;
+    std::uint64_t failedFetches = 0;
+    auto lastHeartbeat = std::chrono::steady_clock::now();
+
+    Logger::Info("PiceaAPI", "Polling loop started with interval=" + std::to_string(Config::PollIntervalSeconds) + "s.");
+
     while (!isFatalError)
     {
         if (TryToConnect())
         {
             while (isConnected)
             {
-                FetchData();
-                std::this_thread::sleep_for(std::chrono::seconds(1));
+                if (FetchData())
+                {
+                    ++successfulFetches;
+                }
+                else
+                {
+                    ++failedFetches;
+                }
+
+                auto now = std::chrono::steady_clock::now();
+                if (now - lastHeartbeat >= std::chrono::seconds(60))
+                {
+                    Logger::Info("Heartbeat", "picea_connected=1 fetch_ok=" + std::to_string(successfulFetches) + " fetch_failed=" + std::to_string(failedFetches));
+                    lastHeartbeat = now;
+                }
+
+                std::this_thread::sleep_for(std::chrono::seconds(Config::PollIntervalSeconds));
             }
         }
+        else
+        {
+            Logger::Warn("PiceaAPI", "Connection not available. Retrying in 5 seconds.");
+        }
+
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
+
+    Logger::Warn("PiceaAPI", "Polling loop stopped due to fatal error flag.");
     return true;
 }
 
@@ -38,7 +68,7 @@ bool PiceaAPI::TryToConnect()
     std::string apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/paired_devices?site_id=" + Config::PiceaID;
     CURL* curl = curl_easy_init();
     if (!curl) {
-        std::cerr << "Picea > Error initializing cURL." << std::endl;
+        Logger::Error("PiceaAPI", "Error initializing cURL.");
         return false;
     }
 
@@ -46,7 +76,7 @@ bool PiceaAPI::TryToConnect()
     std::string authHeader = "Authorization: Bearer " + Config::PiceaJWT;
     headers = curl_slist_append(headers, authHeader.c_str());
     if (!headers) {
-        std::cerr << "Picea > Error creating headers." << std::endl;
+        Logger::Error("PiceaAPI", "Error creating headers.");
         return false;
     }
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -60,6 +90,8 @@ bool PiceaAPI::TryToConnect()
 
 
     curl_easy_setopt(curl, CURLOPT_URL, apiUrl.c_str());
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);
 
     CURLcode res = curl_easy_perform(curl);
     if (res == CURLE_OK)
@@ -70,17 +102,17 @@ bool PiceaAPI::TryToConnect()
         if (response_code == 200)
         {
             isConnected = true;
-            std::cout << "Picea > Connection successfully!" << std::endl;
+            Logger::Info("PiceaAPI", "Connection established successfully.");
         }
         else
         {
-            std::cerr << "Picea > Connection failed: " << response_code << std::endl;
+            Logger::Warn("PiceaAPI", "Connection failed with HTTP status " + std::to_string(response_code) + ".");
             isConnected = false;
         }
     }
     else
     {
-        std::cerr << "Picea > Connection error: " << curl_easy_strerror(res) << std::endl;
+        Logger::Error("PiceaAPI", "Connection error: " + std::string(curl_easy_strerror(res)) + ".");
         isConnected = false;
     }
 
@@ -128,7 +160,7 @@ bool PiceaAPI::FetchData()
     std::istringstream iss(responseBody);
     if (!Json::parseFromStream(builder, iss, &root, &errs))
     {
-        std::cerr << "Picea > JSON Parsing Error: " << errs << std::endl;
+        Logger::Error("PiceaAPI", "JSON parsing error (data): " + errs);
         isConnected = false;
         return false;
     }
@@ -450,7 +482,7 @@ bool PiceaAPI::FetchData()
     Json::Value root2;
     if (!Json::parseFromStream(builder, iss2, &root2, &errs))
     {
-        std::cerr << "Picea > JSON Parsing Error (config): " << errs << std::endl;
+        Logger::Error("PiceaAPI", "JSON parsing error (config): " + errs);
         isConnected = false;
         return false;
     }
@@ -626,7 +658,7 @@ bool PiceaAPI::FetchFromApi(const std::string& apiUrl, std::string& responseBody
 {
     CURL* curl = curl_easy_init();
     if (!curl) {
-        std::cerr << "Picea > Error initializing cURL." << std::endl;
+        Logger::Error("PiceaAPI", "Error initializing cURL.");
         return false;
     }
 
@@ -634,7 +666,7 @@ bool PiceaAPI::FetchFromApi(const std::string& apiUrl, std::string& responseBody
     std::string authHeader = "Authorization: Bearer " + Config::PiceaJWT;
     headers = curl_slist_append(headers, authHeader.c_str());
     if (!headers) {
-        std::cerr << "Picea > Error creating headers." << std::endl;
+        Logger::Error("PiceaAPI", "Error creating headers.");
         return false;
     }
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -646,11 +678,13 @@ bool PiceaAPI::FetchFromApi(const std::string& apiUrl, std::string& responseBody
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseBody);
 
     curl_easy_setopt(curl, CURLOPT_URL, apiUrl.c_str());
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);
 
     CURLcode res = curl_easy_perform(curl);
     if (res != CURLE_OK)
     {
-        std::cerr << "Picea > HTTP Error: " << curl_easy_strerror(res) << std::endl;
+        Logger::Error("PiceaAPI", "HTTP GET failed: " + std::string(curl_easy_strerror(res)) + ".");
         curl_easy_cleanup(curl);
         return false;
     }
@@ -668,13 +702,13 @@ bool PiceaAPI::UpdateConfigSettings(const std::string& jsonData)
 
     // Überprüfe, ob apiUrl korrekt formatiert ist
     if (apiUrl.find("https://") != 0 || Config::PiceaIP.empty() || Config::PiceaPort.empty()) {
-        std::cerr << "Picea > Invalid URL: " << apiUrl << std::endl;
+        Logger::Error("PiceaAPI", "Invalid URL detected for config update.");
         return false;
     }
 
     CURL* curl = curl_easy_init();
     if (!curl) {
-        std::cerr << "Picea > Error initializing cURL." << std::endl;
+        Logger::Error("PiceaAPI", "Error initializing cURL.");
         return false;
     }
 
@@ -682,13 +716,13 @@ bool PiceaAPI::UpdateConfigSettings(const std::string& jsonData)
     std::string authHeader = "Authorization: Bearer " + Config::PiceaJWT;
     headers = curl_slist_append(headers, authHeader.c_str());
     if (!headers) {
-        std::cerr << "Picea > Error creating headers." << std::endl;
+        Logger::Error("PiceaAPI", "Error creating headers.");
         curl_easy_cleanup(curl);
         return false; 
     }
     headers = curl_slist_append(headers, "Content-Type: application/json");
     if (!headers) {
-        std::cerr << "Picea > Error creating headers." << std::endl;
+        Logger::Error("PiceaAPI", "Error creating headers.");
         curl_easy_cleanup(curl);
         return false;
     }
@@ -705,6 +739,8 @@ bool PiceaAPI::UpdateConfigSettings(const std::string& jsonData)
 
     // URL setzen
     curl_easy_setopt(curl, CURLOPT_URL, apiUrl.c_str());
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);
 
     // Write Callback und WRITEDATA setzen, um die Serverantwort zu sammeln
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -714,13 +750,22 @@ bool PiceaAPI::UpdateConfigSettings(const std::string& jsonData)
     CURLcode res = curl_easy_perform(curl);
     if (res != CURLE_OK)
     {
-        std::cerr << "Picea > Error updating settings: " << curl_easy_strerror(res) << std::endl;
-        std::cerr << "Response: " << responseBody << std::endl;
+        Logger::Error("PiceaAPI", "Error updating settings: " + std::string(curl_easy_strerror(res)) + ".");
+        if (!responseBody.empty())
+        {
+            Logger::Error("PiceaAPI", "Update response body: " + responseBody);
+        }
     }
 
     // Ressourcen freigeben
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
+
+    if (res == CURLE_OK)
+    {
+        Logger::Info("PiceaAPI", "Settings update sent successfully.");
+    }
+
     return (res == CURLE_OK);
 }
 

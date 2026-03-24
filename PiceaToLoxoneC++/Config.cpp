@@ -1,7 +1,48 @@
 #include "Config.h"
+#include "Logger.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <limits>
+
+namespace
+{
+    int ParsePositiveIntervalOrDefault(const std::string& value, int defaultValue)
+    {
+        try
+        {
+            size_t processed = 0;
+            int parsed = std::stoi(value, &processed);
+            if (processed != value.size() || parsed < 1)
+            {
+                return defaultValue;
+            }
+            return parsed;
+        }
+        catch (...)
+        {
+            return defaultValue;
+        }
+    }
+
+    int ParsePortOrDefault(const std::string& value, int defaultValue)
+    {
+        try
+        {
+            size_t processed = 0;
+            int parsed = std::stoi(value, &processed);
+            if (processed != value.size() || parsed < 1 || parsed > 65535)
+            {
+                return defaultValue;
+            }
+            return parsed;
+        }
+        catch (...)
+        {
+            return defaultValue;
+        }
+    }
+}
 
 const std::string Config::filePath = "config.cfg";
 std::string Config::LoxoneIP = "";
@@ -11,6 +52,9 @@ std::string Config::PiceaID = "";
 std::string Config::PiceaIP = "";
 std::string Config::PiceaPort = "";
 std::string Config::PiceaJWT = "";
+int Config::PollIntervalSeconds = 1;
+int Config::HttpPort = 8080;
+std::string Config::HttpBindAddress = "0.0.0.0";
 
 std::string Config::autarky = "";
 std::string Config::battery_input_power = "";
@@ -139,7 +183,7 @@ bool Config::LoadConfig()
         std::string line;
         while (std::getline(configFile, line))
         {
-            // Entfernen von Leerzeichen und Zeilenumbrüchen
+            // Entfernen von Leerzeichen und Zeilenumbrï¿½chen
             line = trim(line);
 
             // Ignoriere Kommentare und leere Zeilen
@@ -174,6 +218,34 @@ bool Config::LoadConfig()
                 PiceaPort = value;
             else if (key == "PiceaJWT")
                 PiceaJWT = value;
+            else if (key == "PollIntervalSeconds")
+            {
+                int parsedInterval = ParsePositiveIntervalOrDefault(value, -1);
+                if (parsedInterval < 1)
+                {
+                    logError("Invalid PollIntervalSeconds value '" + value + "'. Using default 1 second.");
+                    PollIntervalSeconds = 1;
+                }
+                else
+                {
+                    PollIntervalSeconds = parsedInterval;
+                }
+            }
+            else if (key == "HttpPort")
+            {
+                int parsedPort = ParsePortOrDefault(value, -1);
+                if (parsedPort < 1)
+                {
+                    logError("Invalid HttpPort value '" + value + "'. Using default 8080.");
+                    HttpPort = 8080;
+                }
+                else
+                {
+                    HttpPort = parsedPort;
+                }
+            }
+            else if (key == "HttpBindAddress")
+                HttpBindAddress = value;
             else if (key == "autarky")
                 autarky = value;
             else if (key == "battery_input_power")
@@ -398,6 +470,9 @@ bool Config::LoadConfig()
 
         configFile.close();
         logInfo("Config file loaded successfully.");
+        logInfo("PollIntervalSeconds=" + std::to_string(PollIntervalSeconds));
+        logInfo("HttpPort=" + std::to_string(HttpPort));
+        logInfo("HttpBindAddress=" + HttpBindAddress);
         return true;
     }
     catch (const std::exception& ex)
@@ -416,10 +491,10 @@ std::string Config::trim(const std::string& str)
 
 void Config::logError(const std::string& message)
 {
-    std::cerr << "[ERROR] " << message << std::endl;
+    Logger::Error("Config", message);
 }
 
 void Config::logInfo(const std::string& message)
 {
-    std::cout << "[INFO] " << message << std::endl;
+    Logger::Info("Config", message);
 }
