@@ -5,7 +5,7 @@ CXXFLAGS_RELEASE = -std=c++17 -Wall -O2
 CXXFLAGS_DEBUG = -std=c++17 -Wall -g
 CFLAGS_RELEASE = -Wall -O2
 CFLAGS_DEBUG = -Wall -g
-CPPFLAGS = -I../civetweb/include
+CPPFLAGS = -I../civetweb/include -I/usr/include/jsoncpp
 CIVETWEB_DEFINES = -DNO_SSL
 
 # Benötigte Bibliotheken
