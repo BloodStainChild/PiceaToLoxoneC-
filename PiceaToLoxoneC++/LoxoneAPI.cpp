@@ -325,14 +325,6 @@ bool LoxoneAPI::SendDataToLoxone(const std::string& virtuellerEingang, const std
     }
 }
 
-void LoxoneAPI::StartMonitoringLoxone() {
-    Logger::Info("LoxoneAPI", "Monitoring loop started with interval=" + std::to_string(Config::PollIntervalSeconds) + "s.");
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(Config::PollIntervalSeconds));
-        CheckLoxoneValues();
-    }
-}
-
 void LoxoneAPI::CheckLoxoneValues() {
     // Hier wird der Status der virtuellen Ausgänge überprüft
     bool bSendFlag = false;
@@ -478,11 +470,13 @@ void LoxoneAPI::CheckLoxoneValues() {
         {
             auto& currentValue = PiceaAPI::PSD.filter_exchange_state.value;
             int iVal = atoi(value.c_str());
-            if (currentValue.has_value() && currentValue.value() != static_cast<FilterExchangeState>(iVal)) {
-                bSendFlag = true;
-                newpsd.filter_exchange_state.value = static_cast<FilterExchangeState>(iVal);
-				// Logge die Änderung
-				logChange("filter_exchange_state", currentValue.has_value() ? std::to_string(static_cast<int>(currentValue.value())) : "null", value);
+			if (iVal == 2 || iVal == 4) { // Nur gültige Werte akzeptieren (2, 4)
+                if (currentValue.has_value() && currentValue.value() != static_cast<FilterExchangeState>(iVal)) {
+                    bSendFlag = true;
+                    newpsd.filter_exchange_state.value = static_cast<FilterExchangeState>(iVal);
+                    // Logge die Änderung
+                    logChange("filter_exchange_state", currentValue.has_value() ? std::to_string(static_cast<int>(currentValue.value())) : "null", value);
+                }
             }
         }
     }

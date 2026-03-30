@@ -21,9 +21,6 @@ public:
     // Sendet einen GET-Request an Loxone; virtueller Eingang und Wert werden übergeben
     bool SendDataToLoxone(const std::string& virtuellerEingang, const std::string& value);
 
-    // Startet das Monitoring des virtuellen Ausgangs (blockierende Endlosschleife)
-    void StartMonitoringLoxone();
-
     // Neu 
     void StartHttpServer();
 

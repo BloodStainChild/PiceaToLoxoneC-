@@ -837,29 +837,13 @@ void PiceaAPI::SendSettingsData(const PiceaSettingData& settings)
         FilterExchangeState val = settings.filter_exchange_state.getValue();
         switch (val)
         {
-        case FilterExchangeState::init:
-            root["filter_exchange_state"]["value"] = "init";
-            break;
-        case FilterExchangeState::filterchange_currently_possible:
-            root["filter_exchange_state"]["value"] = "filterchange_currently_possible";
-            break;
         case FilterExchangeState::filterchange_preparing:
             root["filter_exchange_state"]["value"] = "filterchange_preparing";
-            break;
-        case FilterExchangeState::ready_for_filterchange:
-            root["filter_exchange_state"]["value"] = "ready_for_filterchange";
             break;
         case FilterExchangeState::filterchange_verifying:
             root["filter_exchange_state"]["value"] = "filterchange_verifying";
             break;
-        case FilterExchangeState::filterchange_verification_failed:
-            root["filter_exchange_state"]["value"] = "filterchange_verification_failed";
-            break;
-        case FilterExchangeState::filterchange_currently_NOT_possible:
-            root["filter_exchange_state"]["value"] = "filterchange_currently_NOT_possible";
-            break;
         default:
-            root["filter_exchange_state"]["value"] = "filterchange_currently_possible";
             break;
         }
     }
