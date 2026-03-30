@@ -8,6 +8,7 @@
 #include <map>
 #include <chrono>
 #include <stdexcept>
+#include <atomic>
 
 
 
@@ -196,11 +197,16 @@ public:
     static std::function<void(PiceaData, PiceaSettingData)> OnDataFetched;
 
     // Statusvariablen
-    static bool isConnected;
-    static bool isFatalError;
+    static std::atomic<bool> isConnected;
+    static std::atomic<bool> isFatalError;
 
     // Startet den API-Zyklus (Loop)
     static bool StartLoop();
+
+    // Laufzeitsteuerung f�r internen Restart/Stop
+    static void RequestStop();
+    static void ResetRuntimeState();
+    static bool IsStopRequested();
 
     // Sendet aktualisierte Einstellungen an die API
     static void SendSettingsData(const PiceaSettingData& settings);

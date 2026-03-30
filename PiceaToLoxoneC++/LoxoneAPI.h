@@ -7,6 +7,8 @@
 #include <future>
 #include "PiceaAPI.h" // Enthält Definitionen von PiceaData und PiceaSettingData
 
+struct mg_context;
+
 class LoxoneAPI {
 public:
     LoxoneAPI();
@@ -22,7 +24,9 @@ public:
     bool SendDataToLoxone(const std::string& virtuellerEingang, const std::string& value);
 
     // Neu 
-    void StartHttpServer();
+    bool StartHttpServer();
+    void StopHttpServer();
+    bool IsHttpServerRunning() const;
 
     // Sendet die Daten an Loxone wenn sie unterschiedlich sind
     void CheckLoxoneValues();
@@ -48,6 +52,9 @@ private:
     static int zeitInSekunden(const std::string& zeit);
 
     static std::string sekundenInZeitformat(int sekunden);
+
+    mg_context* httpContext = nullptr;
+    bool httpServerRunning = false;
 };
 
 #endif // LOXONE_API_H

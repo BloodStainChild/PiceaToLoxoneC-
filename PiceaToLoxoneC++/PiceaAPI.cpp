@@ -13,8 +13,9 @@
 
 // Initialisierung der statischen Mitglieder
 std::function<void(PiceaData, PiceaSettingData)> PiceaAPI::OnDataFetched = nullptr;
-bool PiceaAPI::isConnected = false;
-bool PiceaAPI::isFatalError = false;
+std::atomic<bool> PiceaAPI::isConnected{ false };
+std::atomic<bool> PiceaAPI::isFatalError{ false };
+static std::atomic<bool> g_stopRequested{ false };
 
 PiceaSettingData PiceaAPI::PSD = {};
 
@@ -24,13 +25,16 @@ bool PiceaAPI::StartLoop()
     std::uint64_t failedFetches = 0;
     auto lastHeartbeat = std::chrono::steady_clock::now();
 
+    g_stopRequested.store(false);
+    isConnected.store(false);
+
     Logger::Info("PiceaAPI", "Polling loop started with interval=" + std::to_string(Config::PollIntervalSeconds) + "s.");
 
-    while (!isFatalError)
+    while (!isFatalError.load() && !g_stopRequested.load())
     {
         if (TryToConnect())
         {
-            while (isConnected)
+            while (isConnected.load() && !g_stopRequested.load() && !isFatalError.load())
             {
                 if (FetchData())
                 {
@@ -48,23 +52,61 @@ bool PiceaAPI::StartLoop()
                     lastHeartbeat = now;
                 }
 
-                std::this_thread::sleep_for(std::chrono::seconds(Config::PollIntervalSeconds));
+                for (int i = 0; i < Config::PollIntervalSeconds && !g_stopRequested.load() && !isFatalError.load(); ++i)
+                {
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                }
             }
         }
-        else
+        else if (!g_stopRequested.load() && !isFatalError.load())
         {
             Logger::Warn("PiceaAPI", "Connection not available. Retrying in 5 seconds.");
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        for (int i = 0; i < 5 && !g_stopRequested.load() && !isFatalError.load(); ++i)
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
     }
 
-    Logger::Warn("PiceaAPI", "Polling loop stopped due to fatal error flag.");
+    isConnected.store(false);
+
+    if (g_stopRequested.load())
+    {
+        Logger::Info("PiceaAPI", "Polling loop stopped on request.");
+    }
+    else if (isFatalError.load())
+    {
+        Logger::Warn("PiceaAPI", "Polling loop stopped due to fatal error flag.");
+    }
+
     return true;
+}
+
+void PiceaAPI::RequestStop()
+{
+    g_stopRequested.store(true);
+    isConnected.store(false);
+}
+
+void PiceaAPI::ResetRuntimeState()
+{
+    g_stopRequested.store(false);
+    isConnected.store(false);
+    isFatalError.store(false);
+}
+
+bool PiceaAPI::IsStopRequested()
+{
+    return g_stopRequested.load();
 }
 
 bool PiceaAPI::TryToConnect()
 {
+    if (g_stopRequested.load()) {
+        return false;
+    }
+
     std::string apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/paired_devices?site_id=" + Config::PiceaID;
     CURL* curl = curl_easy_init();
     if (!curl) {
@@ -101,28 +143,32 @@ bool PiceaAPI::TryToConnect()
 
         if (response_code == 200)
         {
-            isConnected = true;
+            isConnected.store(true);
             Logger::Info("PiceaAPI", "Connection established successfully.");
         }
         else
         {
             Logger::Warn("PiceaAPI", "Connection failed with HTTP status " + std::to_string(response_code) + ".");
-            isConnected = false;
+            isConnected.store(false);
         }
     }
     else
     {
         Logger::Error("PiceaAPI", "Connection error: " + std::string(curl_easy_strerror(res)) + ".");
-        isConnected = false;
+        isConnected.store(false);
     }
 
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
-    return isConnected;
+    return isConnected.load();
 }
 
 bool PiceaAPI::FetchData()
 {
+    if (g_stopRequested.load()) {
+        return false;
+    }
+
     // Zusammenbau der Query (hier eine vereinfachte Version)
     std::string query = "autarky,"
         "battery_input_power,battery_output_power,battery_power,battery_state_of_charge,"
@@ -161,7 +207,7 @@ bool PiceaAPI::FetchData()
     if (!Json::parseFromStream(builder, iss, &root, &errs))
     {
         Logger::Error("PiceaAPI", "JSON parsing error (data): " + errs);
-        isConnected = false;
+        isConnected.store(false);
         return false;
     }
     // Autarky
@@ -483,7 +529,7 @@ bool PiceaAPI::FetchData()
     if (!Json::parseFromStream(builder, iss2, &root2, &errs))
     {
         Logger::Error("PiceaAPI", "JSON parsing error (config): " + errs);
-        isConnected = false;
+        isConnected.store(false);
         return false;
     }
 
@@ -656,6 +702,10 @@ bool PiceaAPI::FetchData()
 
 bool PiceaAPI::FetchFromApi(const std::string& apiUrl, std::string& responseBody)
 {
+    if (g_stopRequested.load()) {
+        return false;
+    }
+
     CURL* curl = curl_easy_init();
     if (!curl) {
         Logger::Error("PiceaAPI", "Error initializing cURL.");
@@ -696,7 +746,7 @@ bool PiceaAPI::FetchFromApi(const std::string& apiUrl, std::string& responseBody
 
 bool PiceaAPI::UpdateConfigSettings(const std::string& jsonData)
 {
-    if (!isConnected) return false;
+    if (!isConnected.load()) return false;
 
     std::string apiUrl = "https://" + Config::PiceaIP + ":" + Config::PiceaPort + "/picea/v1/config?site_id=" + Config::PiceaID;
 

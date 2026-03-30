@@ -71,6 +71,7 @@ LoxoneAPI::LoxoneAPI() {
 }
 
 LoxoneAPI::~LoxoneAPI() {
+    StopHttpServer();
     curl_global_cleanup();
 }
 
@@ -871,7 +872,13 @@ int request_handler(struct mg_connection* conn, void* cbdata) {
 }
 
 #include <functional> // f\xfcr std::bind
-void LoxoneAPI::StartHttpServer() {
+bool LoxoneAPI::StartHttpServer() {
+    if (httpContext != nullptr)
+    {
+        Logger::Warn("HttpServer", "StartHttpServer called while server is already running.");
+        return true;
+    }
+
     const std::string listenAddress = Config::HttpBindAddress + ":" + std::to_string(Config::HttpPort);
     const char* options[] = {
         "listening_ports", listenAddress.c_str(),
@@ -880,16 +887,39 @@ void LoxoneAPI::StartHttpServer() {
 
     struct mg_callbacks callbacks;
     memset(&callbacks, 0, sizeof(callbacks));
-    struct mg_context* ctx = mg_start(&callbacks, nullptr, options);
+    httpContext = mg_start(&callbacks, nullptr, options);
 
-    if (ctx == nullptr) {
+    if (httpContext == nullptr) {
         Logger::Error("HttpServer", "Failed to start CivetWeb server on " + listenAddress + ".");
+        httpServerRunning = false;
+        return false;
+    }
+
+    mg_set_request_handler(httpContext, "/set", request_handler, nullptr);
+    httpServerRunning = true;
+    Logger::Info("HttpServer", "HTTP server is listening on " + listenAddress);
+    Logger::Info("HttpServer", "Allowed client IP is " + Config::LoxoneIP);
+    return true;
+}
+
+void LoxoneAPI::StopHttpServer()
+{
+    if (httpContext == nullptr)
+    {
+        httpServerRunning = false;
         return;
     }
 
-    mg_set_request_handler(ctx, "/set", request_handler, nullptr);
-    Logger::Info("HttpServer", "HTTP server is listening on " + listenAddress);
-    Logger::Info("HttpServer", "Allowed client IP is " + Config::LoxoneIP);
+    Logger::Info("HttpServer", "Stopping HTTP server.");
+    mg_stop(httpContext);
+    httpContext = nullptr;
+    httpServerRunning = false;
+    Logger::Info("HttpServer", "HTTP server stopped.");
+}
+
+bool LoxoneAPI::IsHttpServerRunning() const
+{
+    return httpServerRunning;
 }
 
 
